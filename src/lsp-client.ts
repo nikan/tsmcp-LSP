@@ -56,6 +56,7 @@ export class LspClient {
     this.process = spawn(serverBin, ['--stdio'], {
       cwd: this.rootPath,
       stdio: ['pipe', 'pipe', 'pipe'],
+      shell: process.platform === 'win32',
     });
 
     if (!this.process.stdin || !this.process.stdout) {

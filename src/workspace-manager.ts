@@ -46,11 +46,14 @@ export class WorkspaceManager {
     if (inflight) return inflight;
 
     const startup = (async () => {
-      const client = new LspClient(root);
-      await client.start();
-      this.clients.set(root, client);
-      this.pending.delete(root);
-      return client;
+      try {
+        const client = new LspClient(root);
+        await client.start();
+        this.clients.set(root, client);
+        return client;
+      } finally {
+        this.pending.delete(root);
+      }
     })();
 
     this.pending.set(root, startup);

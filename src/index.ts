@@ -6,6 +6,9 @@ const server = new McpServer({
   version: '0.1.0',
 });
 
+// TODO: Register MCP tools (ts_definition, ts_references, ts_hover, ts_symbols)
+// Tool registration is deferred to the tools epic; this stub validates the build.
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);
