@@ -1,5 +1,6 @@
 import { spawn, ChildProcess } from 'node:child_process';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   createProtocolConnection,
   StreamMessageReader,
@@ -45,8 +46,10 @@ export class LspClient {
   async start(): Promise<void> {
     if (this.initialized) return;
 
+    const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const packageRoot = path.resolve(__dirname, '..');
     const serverBin = path.resolve(
-      process.cwd(),
+      packageRoot,
       'node_modules/.bin/typescript-language-server',
     );
 

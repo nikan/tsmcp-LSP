@@ -2,7 +2,6 @@ import { readFileSync } from 'node:fs';
 import {
   DidOpenTextDocumentNotification,
   DidChangeTextDocumentNotification,
-  TextDocumentSyncKind,
   type ProtocolConnection,
 } from 'vscode-languageserver-protocol/node.js';
 import { uriToPath, type DocumentContentProvider } from './utils.js';
@@ -115,8 +114,10 @@ export class DocumentManager implements DocumentContentProvider {
    * Detect the language ID from a URI.
    */
   private detectLanguageId(uri: string): string {
-    if (uri.endsWith('.ts') || uri.endsWith('.tsx')) return 'typescript';
-    if (uri.endsWith('.js') || uri.endsWith('.jsx')) return 'javascript';
+    if (uri.endsWith('.tsx')) return 'typescriptreact';
+    if (uri.endsWith('.ts')) return 'typescript';
+    if (uri.endsWith('.jsx')) return 'javascriptreact';
+    if (uri.endsWith('.js')) return 'javascript';
     if (uri.endsWith('.json')) return 'json';
     return 'plaintext';
   }

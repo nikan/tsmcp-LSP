@@ -7,6 +7,7 @@ import { LspClient } from './lsp-client.js';
  */
 export class WorkspaceManager {
   private clients: Map<string, LspClient> = new Map();
+  private pending: Map<string, Promise<LspClient>> = new Map();
 
   /**
    * Find the workspace root for a given file path.
@@ -38,13 +39,22 @@ export class WorkspaceManager {
    */
   async getClient(filePath: string): Promise<LspClient> {
     const root = this.findRoot(filePath);
-    let client = this.clients.get(root);
-    if (!client) {
-      client = new LspClient(root);
+    const existing = this.clients.get(root);
+    if (existing) return existing;
+
+    const inflight = this.pending.get(root);
+    if (inflight) return inflight;
+
+    const startup = (async () => {
+      const client = new LspClient(root);
       await client.start();
       this.clients.set(root, client);
-    }
-    return client;
+      this.pending.delete(root);
+      return client;
+    })();
+
+    this.pending.set(root, startup);
+    return startup;
   }
 
   /**
