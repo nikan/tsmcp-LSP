@@ -5,6 +5,7 @@ import { DocumentManager } from './document-manager.js';
 import { registerDefinitionTool } from './tools/definition.js';
 import { registerReferencesTool } from './tools/references.js';
 import { registerHoverTool } from './tools/hover.js';
+import { registerSymbolsTool } from './tools/symbols.js';
 
 const server = new McpServer({
   name: 'tsmcp-lsp',
@@ -18,6 +19,7 @@ const documentManager = new DocumentManager();
 registerDefinitionTool(server, workspaceManager, documentManager);
 registerReferencesTool(server, workspaceManager, documentManager);
 registerHoverTool(server, workspaceManager, documentManager);
+registerSymbolsTool(server, workspaceManager, documentManager);
 
 // Graceful shutdown
 async function shutdown() {
