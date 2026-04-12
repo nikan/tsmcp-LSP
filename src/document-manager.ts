@@ -11,6 +11,7 @@ interface DocumentState {
   version: number;
   content: string;
   isOpen: boolean;
+  connection: ProtocolConnection;
 }
 
 /**
@@ -31,6 +32,13 @@ export class DocumentManager implements DocumentContentProvider {
     content?: string,
   ): Promise<void> {
     const existing = this.documents.get(uri);
+
+    // If the connection changed (e.g. LSP server restarted), the new server
+    // doesn't know about previously opened docs — force a fresh didOpen.
+    if (existing && existing.isOpen && existing.connection !== connection) {
+      this.documents.set(uri, { ...existing, isOpen: false });
+      return this.ensureOpen(uri, connection, content);
+    }
 
     if (!existing || !existing.isOpen) {
       // Need to open the document
@@ -58,6 +66,7 @@ export class DocumentManager implements DocumentContentProvider {
         version,
         content: text,
         isOpen: true,
+        connection,
       });
       return;
     }
@@ -92,6 +101,7 @@ export class DocumentManager implements DocumentContentProvider {
         version: newVersion,
         content: effectiveContent,
         isOpen: true,
+        connection,
       });
     }
   }
