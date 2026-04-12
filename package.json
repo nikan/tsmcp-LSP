@@ -4,6 +4,9 @@
   "description": "TypeScript MCP Language Server Protocol Bridge",
   "type": "module",
   "main": "dist/index.js",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "build": "tsc",
     "pretest": "tsc",

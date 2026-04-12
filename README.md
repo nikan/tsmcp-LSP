@@ -1,5 +1,11 @@
 # tsmcp-LSP
 
+![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-3178C6?logo=typescript&logoColor=white)
+![Node.js](https://img.shields.io/badge/Node.js-%3E%3D18-339933?logo=nodedotjs&logoColor=white)
+![MCP SDK](https://img.shields.io/badge/MCP_SDK-latest-8B5CF6)
+![LSP](https://img.shields.io/badge/LSP-3.17-007ACC)
+![typescript--language--server](https://img.shields.io/badge/typescript--language--server-4.0+-3178C6)
+
 TypeScript MCP Language Server Protocol Bridge — exposes TypeScript semantic analysis as MCP tools for AI agents.
 
 **Status:** 6 MCP tools registered and fully functional: `ts_definition`, `ts_references`, `ts_hover`, `ts_symbols`, `ts_implementation`, and `ts_call_hierarchy`.
