@@ -51,7 +51,10 @@ export class WorkspaceManager {
     const root = this.findRoot(filePath);
     const existing = this.clients.get(root);
     if (existing && existing.isInitialized) return existing;
-    if (existing) this.clients.delete(root);
+    if (existing) {
+      this.clients.delete(root);
+      this.broadened.delete(root);
+    }
 
     const inflight = this.pending.get(root);
     if (inflight) return inflight;
@@ -86,6 +89,7 @@ export class WorkspaceManager {
     await Promise.all([...activeClients, ...pendingClients]);
     this.clients.clear();
     this.pending.clear();
+    this.broadened.clear();
   }
 
   /**
@@ -104,7 +108,7 @@ export class WorkspaceManager {
     if (this.broadened.has(root) || !this.documentManager) return;
     this.broadened.add(root);
 
-    const files = this.findTypeScriptFiles(root);
+    const files = this.findSourceFiles(root);
     if (files.length === 0 || files.length > SCOPE_FILE_LIMIT) return;
 
     const conn = client.getConnection();
@@ -115,12 +119,18 @@ export class WorkspaceManager {
   }
 
   /**
-   * Recursively find all .ts/.tsx files under a directory,
+   * Recursively find all TypeScript/JavaScript source files under a directory,
    * skipping node_modules, dist, and declaration files.
    */
-  private findTypeScriptFiles(root: string): string[] {
+  private findSourceFiles(root: string): string[] {
     const SKIP_DIRS = new Set(['node_modules', 'dist', '.git']);
     const results: string[] = [];
+
+    const isSourceFile = (name: string): boolean => {
+      if (name.endsWith('.d.ts')) return false;
+      return name.endsWith('.ts') || name.endsWith('.tsx')
+        || name.endsWith('.js') || name.endsWith('.jsx');
+    };
 
     const walk = (dir: string): void => {
       let entries;
@@ -134,11 +144,8 @@ export class WorkspaceManager {
           if (!SKIP_DIRS.has(entry.name)) {
             walk(path.join(dir, entry.name));
           }
-        } else if (entry.isFile()) {
-          const name = entry.name;
-          if ((name.endsWith('.ts') || name.endsWith('.tsx')) && !name.endsWith('.d.ts')) {
-            results.push(path.join(dir, name));
-          }
+        } else if (entry.isFile() && isSourceFile(entry.name)) {
+          results.push(path.join(dir, entry.name));
         }
         if (results.length > SCOPE_FILE_LIMIT) return;
       }
