@@ -28,6 +28,23 @@ Agent <-> [stdio/MCP SDK] <-> MCP Server <-> LSP Client <-> [stdio] <-> typescri
 
 All position-based tools accept **1-indexed** `line` and `column` parameters (matching what editors display). The server converts to 0-indexed internally for LSP.
 
+## Requirements
+
+- **Node.js** >= 18 (required by `typescript-language-server`)
+- **OS:** Linux, macOS, Windows (the server handles Windows-specific process spawning automatically)
+
+Tested on Linux (WSL2) with Node.js 22. macOS and Windows are supported but not regularly tested.
+
+## TypeScript Support
+
+The server bundles its own `typescript` (^5.0) and `typescript-language-server` (^4.0) as local dependencies — it does **not** use a workspace-local or globally installed TypeScript. This means analysis is consistent regardless of the project's own TypeScript version, but may not reflect features from a newer or older TS version used by the project itself.
+
+Supported source files: `.ts`, `.tsx`, `.js`, `.jsx`. Declaration files (`.d.ts`) are excluded from scope broadening but are still resolved by the language server for type information.
+
+## Known Limits
+
+- **Workspace scope broadening (1000-file cap):** On startup, the server opens all source files in the workspace root so the language server can resolve cross-file references (e.g. between `src/` and `tests/`). If a workspace contains more than **1000** source files (excluding `node_modules`, `dist`, `.git`, and `.d.ts` files), scope broadening is skipped entirely. In that case, cross-scope features like `ts_references` and `ts_symbols` (workspace scope) may return incomplete results for files outside the `tsconfig.json` include paths. Files within the tsconfig scope always work regardless of project size.
+
 ## Installation
 
 ```bash
@@ -37,7 +54,7 @@ npm install
 npm run build
 ```
 
-All dependencies (including `typescript-language-server` and `typescript`) are local — no global installs required.
+All dependencies are local — no global installs required.
 
 Verify the build:
 
