@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   pathToUri,
   uriToPath,
@@ -57,9 +58,11 @@ describe('fromLspPosition', () => {
   });
 });
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
 describe('getPreviewLine', () => {
   const fixtureFile = path.resolve(
-    import.meta.dirname,
+    __dirname,
     'fixtures/sample-project/src/utils.ts',
   );
 

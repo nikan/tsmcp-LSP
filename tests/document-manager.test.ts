@@ -1,11 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { DocumentManager } from '../src/document-manager.js';
 import { pathToUri } from '../src/utils.js';
 import type { ProtocolConnection } from 'vscode-languageserver-protocol/node.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixtureRoot = path.resolve(
-  import.meta.dirname,
+  __dirname,
   'fixtures/sample-project',
 );
 const utilsPath = path.join(fixtureRoot, 'src/utils.ts');

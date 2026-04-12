@@ -1,9 +1,11 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { WorkspaceManager } from '../src/workspace-manager.js';
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const fixtureRoot = path.resolve(
-  import.meta.dirname,
+  __dirname,
   'fixtures/sample-project',
 );
 

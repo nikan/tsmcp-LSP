@@ -233,10 +233,13 @@ export class LspClient {
     proc.stderr?.on('error', () => {});
 
     try {
-      await conn.sendRequest(ShutdownRequest.type);
+      const shutdownTimeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error('Shutdown request timed out')), 3000),
+      );
+      await Promise.race([conn.sendRequest(ShutdownRequest.type), shutdownTimeout]);
       conn.sendNotification(ExitNotification.type);
     } catch {
-      // Server may have already exited
+      // Server may have already exited or timed out
     }
 
     // Wait briefly for the process to exit gracefully
