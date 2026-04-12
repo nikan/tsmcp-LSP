@@ -11,7 +11,7 @@ built-in LSP tool revealed correctness gaps and missing operations.
 | Area | Severity | Description |
 |------|----------|-------------|
 | ~~Go-to-definition resolves to import, not target~~ | ~~Critical~~ | ~~Fixed in PR #32~~ — `linkSupport: true` now enables proper definition resolution |
-| Find-references misses files outside tsconfig scope | **High** | `ts_references` only finds references in files included by `tsconfig.json`; test files (excluded via `"exclude": ["tests"]`) are invisible |
+| ~~Find-references misses files outside tsconfig scope~~ | ~~High~~ | ~~Fixed in PR #34~~ — `WorkspaceManager` now opens all workspace files via `didOpen` at startup |
 | Missing LSP operations | **Medium** | 4 operations supported by internal LSP are not exposed: `goToImplementation`, `prepareCallHierarchy`, `incomingCalls`, `outgoingCalls` |
 
 ---
@@ -28,38 +28,24 @@ usage sites, and across multiple symbols.
 
 ---
 
-## Epic 2: Broaden project scope for references (High)
+## Epic 2: Broaden project scope for references (High) — DONE
 
-### Root Cause
+> Resolved in PR #34 (merged to develop).
 
-`tsconfig.json:17` excludes test files:
+`WorkspaceManager` now accepts a `DocumentManager` at construction and runs
+`broadenScope()` after each `LspClient.start()`. This recursively discovers all
+`.ts`/`.tsx`/`.js`/`.jsx` files in the workspace root (skipping `node_modules`,
+`dist`, `.git`, and `.d.ts` files) and opens them via `didOpen`. tsserver creates
+inferred projects for files outside the tsconfig scope, making cross-file
+references and workspace symbols work across source and test files.
 
-```json
-"exclude": ["node_modules", "dist", "tests"]
-```
+Safety: a 1000-file cap prevents startup cost explosion on monorepos. The
+`broadened` set is cleared on `shutdownAll()` and stale-client removal so
+re-broadening runs correctly after LSP restarts.
 
-The `WorkspaceManager.findRoot()` walks up to find `tsconfig.json` and uses that as the
-workspace root. The LSP server then scopes its project to that tsconfig, making test files
-invisible to `ts_references` and `ts_symbols`.
-
-The internal LSP likely uses a broader project scope or a composite tsconfig strategy.
-
-### Tasks
-
-1. **Detect and use composite/multi-root tsconfig setup**: Check for `tsconfig.json` references
-   array or look for sibling configs like `tsconfig.test.json`, `tsconfig.spec.json`. If found,
-   consider using a root-level config that includes both source and test files.
-2. **Alternative approach — open test files explicitly**: When the workspace root is determined,
-   scan for additional tsconfigs (`tsconfig.*.json`) and register them as additional project
-   roots with the language server.
-3. **Consider using `workspaceFolders` more effectively**: The LSP `initialize` params already
-   send `workspaceFolders`. Investigate whether `typescript-language-server` supports multiple
-   project roots via workspace folders and whether we can add test directories as additional
-   folders.
-4. **Add integration test**: assert that `ts_references` on a symbol used in both `src/` and
-   `tests/` returns references from both locations
-5. **Add integration test**: assert that `ts_symbols` with workspace scope finds symbols in
-   test files
+Integration tests verify: cross-scope `ts_references` for both `greet` and `add`,
+workspace symbols finding test-file variables, document symbols on test files,
+and no regression on source-only references (5 new tests).
 
 ---
 
@@ -95,9 +81,9 @@ The internal LSP supports 4 operations not exposed by tsmcp-lsp:
 
 ## Implementation Order
 
-1. **Epic 1** (definition fix) — smallest change, highest impact, unblocks trust in the tool
-2. **Epic 3** (new operations) — additive, no risk to existing functionality
-3. **Epic 2** (broader scope) — most complex, may require workspace manager redesign
+1. ~~**Epic 1** (definition fix) — smallest change, highest impact, unblocks trust in the tool~~ — **done** (PR #32)
+2. ~~**Epic 2** (broader scope) — workspace manager broadenScope via didOpen~~ — **done** (PR #34)
+3. **Epic 3** (new operations) — additive, no risk to existing functionality
 
 ---
 
@@ -105,8 +91,8 @@ The internal LSP supports 4 operations not exposed by tsmcp-lsp:
 
 When complete, running the same 4-operation comparison test should produce:
 - ~~`ts_definition` resolves through imports to actual definitions (matching internal LSP)~~ — **done**
-- `ts_references` finds references across source and test files (matching internal LSP)
+- ~~`ts_references` finds references across source and test files (matching internal LSP)~~ — **done**
 - `ts_hover` continues to match (already at parity)
-- `ts_symbols` finds symbols in test files (matching internal LSP)
+- ~~`ts_symbols` finds symbols in test files (matching internal LSP)~~ — **done**
 - New operations (`ts_implementation`, `ts_call_hierarchy`) produce results consistent with
   internal LSP equivalents
