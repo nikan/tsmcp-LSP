@@ -1,10 +1,19 @@
 import path from 'node:path';
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall } from 'vscode-languageserver-protocol';
+import type { CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall, Range } from 'vscode-languageserver-protocol';
 import type { WorkspaceManager } from '../workspace-manager.js';
 import type { DocumentManager } from '../document-manager.js';
 import { pathToUri, uriToPath, toLspPosition, fromLspPosition, getPreviewLine } from '../utils.js';
+
+interface CallEntry {
+  name: string;
+  file_path: string;
+  line: number;
+  column: number;
+  preview: string | null;
+  call_sites: Array<{ line: number; column: number }>;
+}
 
 export function registerCallHierarchyTool(
   server: McpServer,
@@ -38,38 +47,49 @@ export function registerCallHierarchyTool(
         };
       }
 
-      const item = items[0];
-      let calls: Array<{ name: string; file_path: string; line: number; column: number; preview: string | null }>;
-
-      if (direction === 'incoming') {
-        const incoming = await client.callHierarchyIncomingCalls(item);
-        calls = formatIncomingCalls(incoming, documentManager);
-      } else {
-        const outgoing = await client.callHierarchyOutgoingCalls(item);
-        calls = formatOutgoingCalls(outgoing, documentManager);
+      // Process all prepared items, not just the first one
+      const allCalls: CallEntry[] = [];
+      for (const item of items) {
+        if (direction === 'incoming') {
+          const incoming = await client.callHierarchyIncomingCalls(item);
+          allCalls.push(...formatIncomingCalls(incoming, documentManager));
+        } else {
+          const outgoing = await client.callHierarchyOutgoingCalls(item);
+          allCalls.push(...formatOutgoingCalls(outgoing, documentManager));
+        }
       }
 
       return {
-        content: [{ type: 'text' as const, text: JSON.stringify({ calls }) }],
+        content: [{ type: 'text' as const, text: JSON.stringify({ calls: allCalls }) }],
       };
     },
   );
 }
 
+function rangeToCallSites(ranges: Range[]): Array<{ line: number; column: number }> {
+  return ranges.map((r) => fromLspPosition(r.start));
+}
+
 function formatIncomingCalls(
   calls: CallHierarchyIncomingCall[] | null,
   docManager: DocumentManager,
-): Array<{ name: string; file_path: string; line: number; column: number; preview: string | null }> {
+): CallEntry[] {
   if (!calls) return [];
-  return calls.map((call) => formatCallHierarchyItem(call.from, docManager));
+  return calls.map((call) => {
+    const entry = formatCallHierarchyItem(call.from, docManager);
+    return { ...entry, call_sites: rangeToCallSites(call.fromRanges) };
+  });
 }
 
 function formatOutgoingCalls(
   calls: CallHierarchyOutgoingCall[] | null,
   docManager: DocumentManager,
-): Array<{ name: string; file_path: string; line: number; column: number; preview: string | null }> {
+): CallEntry[] {
   if (!calls) return [];
-  return calls.map((call) => formatCallHierarchyItem(call.to, docManager));
+  return calls.map((call) => {
+    const entry = formatCallHierarchyItem(call.to, docManager);
+    return { ...entry, call_sites: rangeToCallSites(call.fromRanges) };
+  });
 }
 
 function formatCallHierarchyItem(
