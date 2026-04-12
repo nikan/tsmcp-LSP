@@ -16,19 +16,18 @@ MCP server bridging TypeScript LSP capabilities to AI agent tools.
 **Milestone 2 — Symbol Search:**
 - `ts_symbols` — Search symbols in file or workspace
 
+**Milestone 3 — LSP Parity:**
+- `ts_implementation` — Go to implementation (interfaces/abstract classes)
+- `ts_call_hierarchy` — Find incoming callers or outgoing callees
+
 ## Status
 
-This repository is currently **doc-only** — implementation has not started. The setup instructions below describe the intended bootstrap sequence, not the current repo state.
+All milestones complete. 6 MCP tools fully functional.
 
-## Bootstrap (when implementation begins)
+## Setup
 
 ```bash
-# Initialize the project
-npm init -y
-npm install @modelcontextprotocol/sdk vscode-languageserver-protocol vscode-jsonrpc typescript-language-server typescript
-npm install -D vitest @types/node
-
-# Build and test
+npm install
 npm run build
 npm test
 ```
