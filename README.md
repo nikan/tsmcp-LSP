@@ -17,24 +17,112 @@ Agent <-> [stdio/MCP SDK] <-> MCP Server <-> LSP Client <-> [stdio] <-> typescri
 
 ## Tools
 
-| Tool | Description | Status |
-|------|-------------|--------|
-| `ts_definition` | Go to definition | Implemented |
-| `ts_references` | Find all references | Implemented |
-| `ts_hover` | Get type info and documentation | Implemented |
-| `ts_symbols` | Search symbols (file or workspace scope) | Implemented |
-| `ts_implementation` | Find concrete implementations of interfaces/abstract classes | Implemented |
-| `ts_call_hierarchy` | Find incoming callers or outgoing callees of a function | Implemented |
+| Tool | Description |
+|------|-------------|
+| `ts_definition` | Go to definition of a symbol |
+| `ts_references` | Find all references of a symbol |
+| `ts_hover` | Get type info and documentation |
+| `ts_symbols` | Search symbols (file or workspace scope) |
+| `ts_implementation` | Find concrete implementations of interfaces/abstract classes |
+| `ts_call_hierarchy` | Find incoming callers or outgoing callees of a function |
 
-## Setup
+All position-based tools accept **1-indexed** `line` and `column` parameters (matching what editors display). The server converts to 0-indexed internally for LSP.
+
+## Installation
 
 ```bash
+git clone https://github.com/nikan/tsmcp-LSP.git
+cd tsmcp-LSP
 npm install
 npm run build
-npm test
 ```
 
 All dependencies (including `typescript-language-server` and `typescript`) are local — no global installs required.
+
+Verify the build:
+
+```bash
+npm test
+```
+
+After building, the server entry point is `dist/index.js`. Use the **absolute path** to this file when configuring clients below.
+
+## Client Configuration
+
+The server runs over **stdio** — each client spawns it as a child process and communicates via MCP (JSON-RPC on stdin/stdout). Replace `/path/to/tsmcp-LSP` with your actual install path.
+
+### Claude Code
+
+Add to your project's `.mcp.json` (or `~/.claude/settings.json` for global access):
+
+```json
+{
+  "mcpServers": {
+    "tsmcp-lsp": {
+      "command": "node",
+      "args": ["/path/to/tsmcp-LSP/dist/index.js"]
+    }
+  }
+}
+```
+
+Or register via the CLI:
+
+```bash
+claude mcp add tsmcp-lsp -- node /path/to/tsmcp-LSP/dist/index.js
+```
+
+### OpenAI Codex
+
+Register with the Codex CLI:
+
+```bash
+codex mcp add tsmcp-lsp -- node /path/to/tsmcp-LSP/dist/index.js
+```
+
+Verify it was added:
+
+```bash
+codex mcp list
+```
+
+### GitHub Copilot (VS Code)
+
+Add to your project's `.vscode/mcp.json`:
+
+```json
+{
+  "servers": {
+    "tsmcp-lsp": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["/path/to/tsmcp-LSP/dist/index.js"]
+    }
+  }
+}
+```
+
+### Mistral Vibe
+
+Add the following to `~/.vibe/config.toml`:
+
+```toml
+[[mcp_servers]]
+name = "tsmcp-lsp"
+transport = "stdio"
+command = "node"
+args = ["/path/to/tsmcp-LSP/dist/index.js"]
+startup_timeout_sec = 20
+tool_timeout_sec = 120
+```
+
+### Generic MCP client
+
+Spawn the server directly and exchange MCP messages on stdin/stdout:
+
+```bash
+node /path/to/tsmcp-LSP/dist/index.js
+```
 
 ## Project Structure
 
@@ -61,31 +149,6 @@ tests/
   fixtures/
     sample-project/     # Test fixture with tsconfig + TS sources
 ```
-
-## MCP Configuration
-
-### Claude Code
-
-Add to `~/.claude/settings.json` or your project's `.mcp.json`:
-
-```json
-{
-  "mcpServers": {
-    "tsmcp-lsp": {
-      "command": "node",
-      "args": ["/path/to/tsmcp-LSP/dist/index.js"]
-    }
-  }
-}
-```
-
-### Generic MCP client (stdio transport)
-
-```bash
-node /path/to/tsmcp-LSP/dist/index.js
-```
-
-The server communicates over stdio using the MCP protocol. Any MCP-compatible client can connect by spawning the process and exchanging JSON-RPC messages on stdin/stdout.
 
 ## Design
 
