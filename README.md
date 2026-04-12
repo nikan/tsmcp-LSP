@@ -2,7 +2,7 @@
 
 TypeScript MCP Language Server Protocol Bridge — exposes TypeScript semantic analysis as MCP tools for AI agents.
 
-**Status:** Foundation implemented. LSP runtime, workspace management, document sync, and shared utilities are in place. MCP tool registration is next.
+**Status:** Core navigation tools implemented. `ts_definition`, `ts_references`, and `ts_hover` are registered as MCP tools and fully functional.
 
 ## Architecture
 
@@ -15,14 +15,14 @@ Agent <-> [stdio/MCP SDK] <-> MCP Server <-> LSP Client <-> [stdio] <-> typescri
 - **Document Manager** — tracks open/change lifecycle, in-memory content for dirty files
 - **Utilities** — URI/path conversion, 1-indexed position mapping, preview line extraction
 
-## Tools (planned)
+## Tools
 
 | Tool | Description | Status |
 |------|-------------|--------|
-| `ts_definition` | Go to definition | Runtime ready |
-| `ts_references` | Find all references | Runtime ready |
-| `ts_hover` | Get type info and documentation | Runtime ready |
-| `ts_symbols` | Search symbols (Milestone 2) | Runtime ready |
+| `ts_definition` | Go to definition | Implemented |
+| `ts_references` | Find all references | Implemented |
+| `ts_hover` | Get type info and documentation | Implemented |
+| `ts_symbols` | Search symbols (Milestone 2) | Planned |
 
 ## Setup
 
@@ -38,16 +38,21 @@ All dependencies (including `typescript-language-server` and `typescript`) are l
 
 ```
 src/
-  index.ts              # MCP server entry point (stub)
+  index.ts              # MCP server entry point
   lsp-client.ts         # LSP client transport
   workspace-manager.ts  # Per-root LSP instance management
   document-manager.ts   # Document open/change lifecycle
   utils.ts              # Path, URI, position, preview helpers
+  tools/
+    definition.ts       # ts_definition MCP tool
+    references.ts       # ts_references MCP tool
+    hover.ts            # ts_hover MCP tool
 tests/
   lsp-client.test.ts
   workspace-manager.test.ts
   document-manager.test.ts
   utils.test.ts
+  smoke.test.ts         # End-to-end MCP tool tests
   fixtures/
     sample-project/     # Test fixture with tsconfig + TS sources
 ```
