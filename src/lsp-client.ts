@@ -14,7 +14,6 @@ import {
   DocumentSymbolRequest,
   WorkspaceSymbolRequest,
   type InitializeParams,
-  type InitializeResult,
   type Location,
   type Hover,
   type SymbolInformation,

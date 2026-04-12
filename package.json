@@ -12,7 +12,6 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "latest",
     "vscode-languageserver-protocol": "^3.17.0",
-    "vscode-jsonrpc": "^8.0.0",
     "typescript-language-server": "^4.0.0",
     "typescript": "^5.0.0"
   },

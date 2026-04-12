@@ -1,7 +1,6 @@
 import { Position } from 'vscode-languageserver-protocol';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import path from 'node:path';
 
 /**
  * Convert an absolute file path to a file:// URI.
