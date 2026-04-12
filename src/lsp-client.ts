@@ -14,6 +14,10 @@ import {
   HoverRequest,
   DocumentSymbolRequest,
   WorkspaceSymbolRequest,
+  ImplementationRequest,
+  CallHierarchyPrepareRequest,
+  CallHierarchyIncomingCallsRequest,
+  CallHierarchyOutgoingCallsRequest,
   type InitializeParams,
   type Location,
   type Hover,
@@ -27,6 +31,9 @@ import {
   type DefinitionLink,
   type ProtocolConnection,
   type WorkspaceSymbol,
+  type CallHierarchyItem,
+  type CallHierarchyIncomingCall,
+  type CallHierarchyOutgoingCall,
 } from 'vscode-languageserver-protocol/node.js';
 import { pathToUri } from './utils.js';
 
@@ -104,6 +111,13 @@ export class LspClient {
           documentSymbol: {
             dynamicRegistration: false,
             hierarchicalDocumentSymbolSupport: true,
+          },
+          implementation: {
+            dynamicRegistration: false,
+            linkSupport: true,
+          },
+          callHierarchy: {
+            dynamicRegistration: false,
           },
         },
         workspace: {
@@ -218,6 +232,58 @@ export class LspClient {
     this.ensureInitialized();
     const params: WorkspaceSymbolParams = { query };
     return this.connection!.sendRequest(WorkspaceSymbolRequest.type, params);
+  }
+
+  /**
+   * Go to implementation.
+   */
+  async implementation(
+    uri: string,
+    line: number,
+    character: number,
+  ): Promise<Definition | DefinitionLink[] | null> {
+    this.ensureInitialized();
+    const params: TextDocumentPositionParams = {
+      textDocument: { uri },
+      position: { line, character },
+    };
+    return this.connection!.sendRequest(ImplementationRequest.type, params);
+  }
+
+  /**
+   * Prepare call hierarchy at position.
+   */
+  async prepareCallHierarchy(
+    uri: string,
+    line: number,
+    character: number,
+  ): Promise<CallHierarchyItem[] | null> {
+    this.ensureInitialized();
+    const params: TextDocumentPositionParams = {
+      textDocument: { uri },
+      position: { line, character },
+    };
+    return this.connection!.sendRequest(CallHierarchyPrepareRequest.type, params);
+  }
+
+  /**
+   * Get incoming calls for a call hierarchy item.
+   */
+  async callHierarchyIncomingCalls(
+    item: CallHierarchyItem,
+  ): Promise<CallHierarchyIncomingCall[] | null> {
+    this.ensureInitialized();
+    return this.connection!.sendRequest(CallHierarchyIncomingCallsRequest.type, { item });
+  }
+
+  /**
+   * Get outgoing calls for a call hierarchy item.
+   */
+  async callHierarchyOutgoingCalls(
+    item: CallHierarchyItem,
+  ): Promise<CallHierarchyOutgoingCall[] | null> {
+    this.ensureInitialized();
+    return this.connection!.sendRequest(CallHierarchyOutgoingCallsRequest.type, { item });
   }
 
   /**

@@ -6,6 +6,8 @@ import { registerDefinitionTool } from './tools/definition.js';
 import { registerReferencesTool } from './tools/references.js';
 import { registerHoverTool } from './tools/hover.js';
 import { registerSymbolsTool } from './tools/symbols.js';
+import { registerImplementationTool } from './tools/implementation.js';
+import { registerCallHierarchyTool } from './tools/call-hierarchy.js';
 
 const server = new McpServer({
   name: 'tsmcp-lsp',
@@ -20,6 +22,8 @@ registerDefinitionTool(server, workspaceManager, documentManager);
 registerReferencesTool(server, workspaceManager, documentManager);
 registerHoverTool(server, workspaceManager, documentManager);
 registerSymbolsTool(server, workspaceManager, documentManager);
+registerImplementationTool(server, workspaceManager, documentManager);
+registerCallHierarchyTool(server, workspaceManager, documentManager);
 
 // Graceful shutdown
 async function shutdown() {

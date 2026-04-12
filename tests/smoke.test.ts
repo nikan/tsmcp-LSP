@@ -123,10 +123,9 @@ describe('Smoke tests', () => {
     expect(parsed.symbols).toBeDefined();
     expect(parsed.symbols.length).toBeGreaterThanOrEqual(1);
 
-    const greetSym = parsed.symbols.find((s: { name: string }) => s.name === 'greet');
+    const greetSym = parsed.symbols.find((s: { name: string; file_path: string }) => s.name === 'greet' && s.file_path.includes('utils.ts'));
     expect(greetSym).toBeDefined();
     expect(greetSym.kind).toBe('function');
-    expect(greetSym.file_path).toContain('utils.ts');
     expect(greetSym.line).toBeGreaterThanOrEqual(1);
   }, 30000);
 
