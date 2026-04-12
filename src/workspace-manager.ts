@@ -64,11 +64,16 @@ export class WorkspaceManager {
    * Shut down all managed LSP clients.
    */
   async shutdownAll(): Promise<void> {
-    const shutdowns = Array.from(this.clients.values()).map((client) =>
+    // Wait for any in-flight startups, then shut them down too
+    const pendingClients = Array.from(this.pending.values()).map((p) =>
+      p.then((client) => client.shutdown()).catch(() => {}),
+    );
+    const activeClients = Array.from(this.clients.values()).map((client) =>
       client.shutdown(),
     );
-    await Promise.all(shutdowns);
+    await Promise.all([...activeClients, ...pendingClients]);
     this.clients.clear();
+    this.pending.clear();
   }
 
   /**

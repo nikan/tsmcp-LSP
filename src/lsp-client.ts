@@ -59,6 +59,16 @@ export class LspClient {
       shell: process.platform === 'win32',
     });
 
+    // Reject start() if the process fails to spawn or exits before initialize
+    const earlyExit = new Promise<never>((_, reject) => {
+      this.process!.on('error', (err) =>
+        reject(new Error(`Failed to spawn language server: ${err.message}`)),
+      );
+      this.process!.on('exit', (code) =>
+        reject(new Error(`Language server exited during startup with code ${code}`)),
+      );
+    });
+
     if (!this.process.stdin || !this.process.stdout) {
       throw new Error('Failed to get stdin/stdout from language server process');
     }
@@ -110,7 +120,12 @@ export class LspClient {
       ],
     };
 
-    await this.connection.sendRequest(InitializeRequest.type, initParams);
+    await Promise.race([
+      this.connection.sendRequest(InitializeRequest.type, initParams),
+      earlyExit,
+    ]);
+    // Remove the early-exit listener now that initialization succeeded
+    this.process.removeAllListeners('exit');
     this.connection.sendNotification(InitializedNotification.type, {});
     this.initialized = true;
   }
