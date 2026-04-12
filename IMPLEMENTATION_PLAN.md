@@ -316,11 +316,12 @@ Each tool tested against the `tests/fixtures/sample-project/` — a small TS pro
 
 ## Verification Checklist
 
-- [ ] `npm run build` compiles without errors
-- [ ] Smoke test passes: initialize → tools/list → ts_definition → shutdown
-- [ ] Each tool returns 1-indexed positions and file paths (not URIs)
-- [ ] Each tool returns source preview lines
-- [ ] Unsaved buffer content is correctly synced to LSP
-- [ ] Server handles missing files gracefully (error, not crash)
+- [x] `npm run build` compiles without errors
+- [x] Smoke test passes: initialize → tools/list → ts_definition → shutdown
+- [x] Each tool returns 1-indexed positions and file paths (not URIs)
+- [x] Each tool returns source preview lines
+- [x] Unsaved buffer content is correctly synced to LSP
+- [x] Server handles missing files gracefully (error, not crash)
+- [x] `ts_symbols` works for file and workspace scope
 - [ ] Server works with Claude Code MCP configuration
 - [ ] Server works with Mistral Vibe MCP configuration
