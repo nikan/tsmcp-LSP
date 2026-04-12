@@ -92,7 +92,7 @@ export class LspClient {
           },
           definition: {
             dynamicRegistration: false,
-            linkSupport: false,
+            linkSupport: true,
           },
           references: {
             dynamicRegistration: false,
