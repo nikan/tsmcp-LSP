@@ -2,7 +2,7 @@
 
 TypeScript MCP Language Server Protocol Bridge — exposes TypeScript semantic analysis as MCP tools for AI agents.
 
-**Status:** MVP complete. `ts_definition`, `ts_references`, `ts_hover`, and `ts_symbols` are registered as MCP tools and fully functional.
+**Status:** 6 MCP tools registered and fully functional: `ts_definition`, `ts_references`, `ts_hover`, `ts_symbols`, `ts_implementation`, and `ts_call_hierarchy`.
 
 ## Architecture
 
@@ -23,6 +23,8 @@ Agent <-> [stdio/MCP SDK] <-> MCP Server <-> LSP Client <-> [stdio] <-> typescri
 | `ts_references` | Find all references | Implemented |
 | `ts_hover` | Get type info and documentation | Implemented |
 | `ts_symbols` | Search symbols (file or workspace scope) | Implemented |
+| `ts_implementation` | Find concrete implementations of interfaces/abstract classes | Implemented |
+| `ts_call_hierarchy` | Find incoming callers or outgoing callees of a function | Implemented |
 
 ## Setup
 
@@ -48,6 +50,8 @@ src/
     references.ts       # ts_references MCP tool
     hover.ts            # ts_hover MCP tool
     symbols.ts          # ts_symbols MCP tool
+    implementation.ts   # ts_implementation MCP tool
+    call-hierarchy.ts   # ts_call_hierarchy MCP tool
 tests/
   lsp-client.test.ts
   workspace-manager.test.ts
