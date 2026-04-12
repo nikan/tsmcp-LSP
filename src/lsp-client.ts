@@ -124,8 +124,14 @@ export class LspClient {
       this.connection.sendRequest(InitializeRequest.type, initParams),
       earlyExit,
     ]);
-    // Remove the early-exit listener now that initialization succeeded
+    // Replace the startup exit handler with a crash handler
     this.process.removeAllListeners('exit');
+    this.process.removeAllListeners('error');
+    this.process.on('exit', () => {
+      this.initialized = false;
+      this.connection = null;
+      this.process = null;
+    });
     this.connection.sendNotification(InitializedNotification.type, {});
     this.initialized = true;
   }

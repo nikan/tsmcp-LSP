@@ -62,8 +62,21 @@ export class DocumentManager implements DocumentContentProvider {
       return;
     }
 
-    // Already open — check if content differs
-    if (content !== undefined && content !== existing.content) {
+    // Already open — resolve the effective content
+    let effectiveContent: string;
+    if (content !== undefined) {
+      effectiveContent = content;
+    } else {
+      // Re-read from disk to pick up external edits
+      const filePath = uriToPath(uri);
+      try {
+        effectiveContent = readFileSync(filePath, 'utf-8');
+      } catch {
+        return; // File may have been deleted; keep existing state
+      }
+    }
+
+    if (effectiveContent !== existing.content) {
       const newVersion = existing.version + 1;
 
       connection.sendNotification(DidChangeTextDocumentNotification.type, {
@@ -71,13 +84,13 @@ export class DocumentManager implements DocumentContentProvider {
           uri,
           version: newVersion,
         },
-        contentChanges: [{ text: content }],
+        contentChanges: [{ text: effectiveContent }],
       });
 
       this.documents.set(uri, {
         uri,
         version: newVersion,
-        content,
+        content: effectiveContent,
         isOpen: true,
       });
     }

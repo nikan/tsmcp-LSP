@@ -40,7 +40,8 @@ export class WorkspaceManager {
   async getClient(filePath: string): Promise<LspClient> {
     const root = this.findRoot(filePath);
     const existing = this.clients.get(root);
-    if (existing) return existing;
+    if (existing && existing.isInitialized) return existing;
+    if (existing) this.clients.delete(root);
 
     const inflight = this.pending.get(root);
     if (inflight) return inflight;
