@@ -132,7 +132,7 @@ export function registerSymbolsTool(
           }));
         }
 
-        // Filter by query (case-insensitive prefix match)
+        // Filter by query (case-insensitive substring match)
         if (query) {
           const lowerQuery = query.toLowerCase();
           symbols = symbols.filter((s) => s.name.toLowerCase().includes(lowerQuery));
@@ -149,7 +149,7 @@ export function registerSymbolsTool(
             let line: number;
             let column: number;
 
-            if ('uri' in loc) {
+            if ('range' in loc) {
               // SymbolInformation location: { uri, range }
               symFilePath = uriToPath(loc.uri);
               const range = (loc as { uri: string; range: { start: { line: number; character: number } } }).range;
