@@ -1,6 +1,10 @@
 import path from 'node:path';
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import { LspClient } from './lsp-client.js';
+import type { DocumentManager } from './document-manager.js';
+import { pathToUri } from './utils.js';
+
+const SCOPE_FILE_LIMIT = 1000;
 
 /**
  * Maps file paths to workspace roots and manages per-root LSP client instances.
@@ -8,6 +12,12 @@ import { LspClient } from './lsp-client.js';
 export class WorkspaceManager {
   private clients: Map<string, LspClient> = new Map();
   private pending: Map<string, Promise<LspClient>> = new Map();
+  private broadened: Set<string> = new Set();
+  private documentManager: DocumentManager | null;
+
+  constructor(documentManager?: DocumentManager) {
+    this.documentManager = documentManager ?? null;
+  }
 
   /**
    * Find the workspace root for a given file path.
@@ -41,7 +51,10 @@ export class WorkspaceManager {
     const root = this.findRoot(filePath);
     const existing = this.clients.get(root);
     if (existing && existing.isInitialized) return existing;
-    if (existing) this.clients.delete(root);
+    if (existing) {
+      this.clients.delete(root);
+      this.broadened.delete(root);
+    }
 
     const inflight = this.pending.get(root);
     if (inflight) return inflight;
@@ -51,6 +64,7 @@ export class WorkspaceManager {
         const client = new LspClient(root);
         await client.start();
         this.clients.set(root, client);
+        await this.broadenScope(root, client);
         return client;
       } finally {
         this.pending.delete(root);
@@ -75,6 +89,7 @@ export class WorkspaceManager {
     await Promise.all([...activeClients, ...pendingClients]);
     this.clients.clear();
     this.pending.clear();
+    this.broadened.clear();
   }
 
   /**
@@ -82,5 +97,61 @@ export class WorkspaceManager {
    */
   get clientCount(): number {
     return this.clients.size;
+  }
+
+  /**
+   * Open all TypeScript/JavaScript files in the workspace root so the LSP
+   * server is aware of files outside the tsconfig scope (e.g. test files).
+   * This enables cross-scope references and workspace symbol search.
+   */
+  private async broadenScope(root: string, client: LspClient): Promise<void> {
+    if (this.broadened.has(root) || !this.documentManager) return;
+    this.broadened.add(root);
+
+    const files = this.findSourceFiles(root);
+    if (files.length === 0 || files.length > SCOPE_FILE_LIMIT) return;
+
+    const conn = client.getConnection();
+    for (const filePath of files) {
+      const uri = pathToUri(filePath);
+      await this.documentManager.ensureOpen(uri, conn);
+    }
+  }
+
+  /**
+   * Recursively find all TypeScript/JavaScript source files under a directory,
+   * skipping node_modules, dist, and declaration files.
+   */
+  private findSourceFiles(root: string): string[] {
+    const SKIP_DIRS = new Set(['node_modules', 'dist', '.git']);
+    const results: string[] = [];
+
+    const isSourceFile = (name: string): boolean => {
+      if (name.endsWith('.d.ts')) return false;
+      return name.endsWith('.ts') || name.endsWith('.tsx')
+        || name.endsWith('.js') || name.endsWith('.jsx');
+    };
+
+    const walk = (dir: string): void => {
+      let entries;
+      try {
+        entries = readdirSync(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          if (!SKIP_DIRS.has(entry.name)) {
+            walk(path.join(dir, entry.name));
+          }
+        } else if (entry.isFile() && isSourceFile(entry.name)) {
+          results.push(path.join(dir, entry.name));
+        }
+        if (results.length > SCOPE_FILE_LIMIT) return;
+      }
+    };
+
+    walk(root);
+    return results;
   }
 }

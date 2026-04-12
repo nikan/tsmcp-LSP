@@ -12,8 +12,8 @@ const server = new McpServer({
   version: '0.1.0',
 });
 
-const workspaceManager = new WorkspaceManager();
 const documentManager = new DocumentManager();
+const workspaceManager = new WorkspaceManager(documentManager);
 
 // Register MCP tools
 registerDefinitionTool(server, workspaceManager, documentManager);
