@@ -12,7 +12,7 @@ interface CallEntry {
   line: number;
   column: number;
   preview: string | null;
-  call_sites: Array<{ line: number; column: number }>;
+  call_sites: Array<{ file_path: string; line: number; column: number }>;
 }
 
 export function registerCallHierarchyTool(
@@ -55,7 +55,7 @@ export function registerCallHierarchyTool(
           allCalls.push(...formatIncomingCalls(incoming, documentManager));
         } else {
           const outgoing = await client.callHierarchyOutgoingCalls(item);
-          allCalls.push(...formatOutgoingCalls(outgoing, documentManager));
+          allCalls.push(...formatOutgoingCalls(outgoing, item, documentManager));
         }
       }
 
@@ -66,8 +66,11 @@ export function registerCallHierarchyTool(
   );
 }
 
-function rangeToCallSites(ranges: Range[]): Array<{ line: number; column: number }> {
-  return ranges.map((r) => fromLspPosition(r.start));
+function rangeToCallSites(ranges: Range[], filePath: string): Array<{ file_path: string; line: number; column: number }> {
+  return ranges.map((r) => {
+    const pos = fromLspPosition(r.start);
+    return { file_path: filePath, line: pos.line, column: pos.column };
+  });
 }
 
 function formatIncomingCalls(
@@ -77,18 +80,22 @@ function formatIncomingCalls(
   if (!calls) return [];
   return calls.map((call) => {
     const entry = formatCallHierarchyItem(call.from, docManager);
-    return { ...entry, call_sites: rangeToCallSites(call.fromRanges) };
+    // fromRanges are in the caller's file (call.from)
+    return { ...entry, call_sites: rangeToCallSites(call.fromRanges, entry.file_path) };
   });
 }
 
 function formatOutgoingCalls(
   calls: CallHierarchyOutgoingCall[] | null,
+  sourceItem: CallHierarchyItem,
   docManager: DocumentManager,
 ): CallEntry[] {
   if (!calls) return [];
+  // fromRanges for outgoing calls are in the source item's file, not in call.to's file
+  const sourceFilePath = uriToPath(sourceItem.uri);
   return calls.map((call) => {
     const entry = formatCallHierarchyItem(call.to, docManager);
-    return { ...entry, call_sites: rangeToCallSites(call.fromRanges) };
+    return { ...entry, call_sites: rangeToCallSites(call.fromRanges, sourceFilePath) };
   });
 }
 
