@@ -2,7 +2,7 @@
 
 TypeScript MCP Language Server Protocol Bridge — exposes TypeScript semantic analysis as MCP tools for AI agents.
 
-**Status:** Core navigation tools implemented. `ts_definition`, `ts_references`, and `ts_hover` are registered as MCP tools and fully functional.
+**Status:** MVP complete. `ts_definition`, `ts_references`, `ts_hover`, and `ts_symbols` are registered as MCP tools and fully functional.
 
 ## Architecture
 
@@ -22,7 +22,7 @@ Agent <-> [stdio/MCP SDK] <-> MCP Server <-> LSP Client <-> [stdio] <-> typescri
 | `ts_definition` | Go to definition | Implemented |
 | `ts_references` | Find all references | Implemented |
 | `ts_hover` | Get type info and documentation | Implemented |
-| `ts_symbols` | Search symbols (Milestone 2) | Planned |
+| `ts_symbols` | Search symbols (file or workspace scope) | Implemented |
 
 ## Setup
 
@@ -47,6 +47,7 @@ src/
     definition.ts       # ts_definition MCP tool
     references.ts       # ts_references MCP tool
     hover.ts            # ts_hover MCP tool
+    symbols.ts          # ts_symbols MCP tool
 tests/
   lsp-client.test.ts
   workspace-manager.test.ts
@@ -56,6 +57,31 @@ tests/
   fixtures/
     sample-project/     # Test fixture with tsconfig + TS sources
 ```
+
+## MCP Configuration
+
+### Claude Code
+
+Add to `~/.claude/settings.json` or your project's `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "tsmcp-lsp": {
+      "command": "node",
+      "args": ["/path/to/tsmcp-LSP/dist/index.js"]
+    }
+  }
+}
+```
+
+### Generic MCP client (stdio transport)
+
+```bash
+node /path/to/tsmcp-LSP/dist/index.js
+```
+
+The server communicates over stdio using the MCP protocol. Any MCP-compatible client can connect by spawning the process and exchanging JSON-RPC messages on stdin/stdout.
 
 ## Design
 

@@ -75,4 +75,100 @@ describe('Smoke tests', () => {
     expect(parsed.hover.contents).toBeDefined();
     expect(parsed.hover.contents.length).toBeGreaterThan(0);
   }, 30000);
+
+  it('ts_symbols returns file-scope symbols from utils.ts', async () => {
+    const utilsFile = path.resolve(fixtureRoot, 'src', 'utils.ts');
+    const result = await client.callTool({
+      name: 'ts_symbols',
+      arguments: { query: '', file_path: utilsFile, scope: 'file' },
+    });
+
+    const parsed = JSON.parse((result.content as Array<{ text: string }>)[0].text);
+    expect(parsed.symbols).toBeDefined();
+    expect(parsed.symbols.length).toBeGreaterThanOrEqual(2);
+
+    const names = parsed.symbols.map((s: { name: string }) => s.name);
+    expect(names).toContain('greet');
+    expect(names).toContain('add');
+
+    // Verify symbol structure
+    const greetSym = parsed.symbols.find((s: { name: string }) => s.name === 'greet');
+    expect(greetSym.kind).toBe('function');
+    expect(greetSym.file_path).toContain('utils.ts');
+    expect(greetSym.line).toBe(1);
+    expect(typeof greetSym.column).toBe('number');
+  }, 30000);
+
+  it('ts_symbols filters file-scope symbols by query', async () => {
+    const utilsFile = path.resolve(fixtureRoot, 'src', 'utils.ts');
+    const result = await client.callTool({
+      name: 'ts_symbols',
+      arguments: { query: 'greet', file_path: utilsFile, scope: 'file' },
+    });
+
+    const parsed = JSON.parse((result.content as Array<{ text: string }>)[0].text);
+    expect(parsed.symbols).toBeDefined();
+    expect(parsed.symbols.length).toBe(1);
+    expect(parsed.symbols[0].name).toBe('greet');
+  }, 30000);
+
+  it('ts_symbols returns workspace-scope symbols', async () => {
+    const utilsFile = path.resolve(fixtureRoot, 'src', 'utils.ts');
+    const result = await client.callTool({
+      name: 'ts_symbols',
+      arguments: { query: 'greet', file_path: utilsFile, scope: 'workspace' },
+    });
+
+    const parsed = JSON.parse((result.content as Array<{ text: string }>)[0].text);
+    expect(parsed.symbols).toBeDefined();
+    expect(parsed.symbols.length).toBeGreaterThanOrEqual(1);
+
+    const greetSym = parsed.symbols.find((s: { name: string }) => s.name === 'greet');
+    expect(greetSym).toBeDefined();
+    expect(greetSym.kind).toBe('function');
+    expect(greetSym.file_path).toContain('utils.ts');
+    expect(greetSym.line).toBeGreaterThanOrEqual(1);
+  }, 30000);
+
+  it('ts_symbols defaults to workspace scope', async () => {
+    const utilsFile = path.resolve(fixtureRoot, 'src', 'utils.ts');
+    const result = await client.callTool({
+      name: 'ts_symbols',
+      arguments: { query: 'add', file_path: utilsFile },
+    });
+
+    const parsed = JSON.parse((result.content as Array<{ text: string }>)[0].text);
+    expect(parsed.symbols).toBeDefined();
+    expect(parsed.symbols.length).toBeGreaterThanOrEqual(1);
+
+    const addSym = parsed.symbols.find((s: { name: string }) => s.name === 'add');
+    expect(addSym).toBeDefined();
+  }, 30000);
+
+  it('ts_symbols returns empty array for no matches', async () => {
+    const utilsFile = path.resolve(fixtureRoot, 'src', 'utils.ts');
+    const result = await client.callTool({
+      name: 'ts_symbols',
+      arguments: { query: 'nonexistentsymbolxyz', file_path: utilsFile, scope: 'file' },
+    });
+
+    const parsed = JSON.parse((result.content as Array<{ text: string }>)[0].text);
+    expect(parsed.symbols).toBeDefined();
+    expect(parsed.symbols.length).toBe(0);
+  }, 30000);
+
+  it('ts_symbols uses absolute file paths and 1-indexed positions', async () => {
+    const utilsFile = path.resolve(fixtureRoot, 'src', 'utils.ts');
+    const result = await client.callTool({
+      name: 'ts_symbols',
+      arguments: { query: '', file_path: utilsFile, scope: 'file' },
+    });
+
+    const parsed = JSON.parse((result.content as Array<{ text: string }>)[0].text);
+    for (const sym of parsed.symbols) {
+      expect(path.isAbsolute(sym.file_path)).toBe(true);
+      expect(sym.line).toBeGreaterThanOrEqual(1);
+      expect(sym.column).toBeGreaterThanOrEqual(1);
+    }
+  }, 30000);
 });
