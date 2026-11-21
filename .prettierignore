@@ -1,0 +1,6 @@
+# Fixtures: tests assert exact line/column positions in these files.
+tests/fixtures/
+dist/
+coverage/
+node_modules/
+package-lock.json

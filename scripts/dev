@@ -1,0 +1,25 @@
+#!/bin/sh
+# The same commands in every project, whatever the language (handbook/05, "Commands").
+# Usage: sh scripts/dev <command>      Node pack: each command calls the package.json script.
+set -eu
+
+cmd="${1:-help}"
+self="$0"
+run() { sh "$self" "$1"; }
+
+case "$cmd" in
+  setup)     npm ci ;;
+  lint)      npm run lint ;;
+  format)    npm run format ;;
+  typecheck) npm run typecheck ;;
+  arch)      npm run arch:check ;;
+  test)      npm test ;;
+  coverage)  npm run test:coverage ;;
+  i18n)      npm run check:i18n ;;
+  unused)    npm run check:unused ;;
+  build)     npm run build ;;
+  check)     for c in lint arch typecheck coverage i18n unused build; do run "$c"; done ;;
+  ci)        run setup && run check ;;
+  help)      echo "usage: sh scripts/dev {setup|lint|format|typecheck|arch|test|coverage|i18n|unused|build|check|ci}" ;;
+  *)         echo "unknown command: $cmd (sh scripts/dev help)" >&2; exit 2 ;;
+esac

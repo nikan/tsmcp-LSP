@@ -1,0 +1,119 @@
+name: Merge on approval
+
+# Squash-merges a pull request into develop, and deletes its branch, when the owner's reviewer account approves it
+# and the whole merge gate of handbook/08 holds. GitHub's own auto-merge needs branch rules, which a private repo on
+# the free plan lacks, so this workflow checks the gate itself instead of relying on required checks.
+#
+# Gate (all must hold, for the commit that is the branch head):
+# - REVIEWER's latest review approves that commit, and nobody's latest review requests changes (decided from the
+#   reviews, not GitHub's reviewDecision, which stays empty without required-review branch rules);
+# - open, not draft, not from a fork, base = the repo's default branch (develop in app repos), no merge conflicts;
+# - every check on the head commit finished successfully (this workflow's own run excepted);
+# - Codex's latest review state (from the real Codex bot only) is for the head commit, completed, and that round had
+#   no findings at all (has_any_findings and has_unresolved_findings both false);
+# - no unresolved review thread that is still current, except Codex's own when Codex reports none unresolved.
+# The merge itself is pinned to the approved commit. No checkout, so nothing from the pull request runs here.
+# A pull request that changes .github/workflows cannot be merged by this token (GitHub refuses); merge by hand.
+
+on:
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: write
+  pull-requests: write
+  checks: read
+  statuses: read
+
+concurrency:
+  group: merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+env:
+  REVIEWER: nikobotaki
+  CODEX_REST_LOGIN: chatgpt-codex-connector[bot]
+  CODEX_GRAPHQL_LOGIN: chatgpt-codex-connector
+
+jobs:
+  merge:
+    if: github.event.review.state == 'approved'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge if the whole gate holds
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+          APPROVED_BY: ${{ github.event.review.user.login }}
+          APPROVED_SHA: ${{ github.event.review.commit_id }}
+          SELF_WORKFLOW: ${{ github.workflow }}
+          BASE: ${{ github.event.repository.default_branch }}
+        run: |
+          set -euo pipefail
+          refuse() { echo "Not merging: $1"; exit 0; }
+          [ "$APPROVED_BY" = "$REVIEWER" ] || refuse "approval by $APPROVED_BY, not $REVIEWER"
+
+          # Mergeability is computed a moment after the event, so look a few times.
+          for attempt in 1 2 3 4 5; do
+            info=$(gh pr view "$PR" --repo "$REPO" --json state,isDraft,isCrossRepository,baseRefName,headRefOid,reviewDecision,mergeable,statusCheckRollup)
+            [ "$(jq -r .mergeable <<<"$info")" != UNKNOWN ] && break
+            sleep 4
+          done
+          get() { jq -r "$1" <<<"$info"; }
+
+          [ "$(get .state)" = OPEN ] || refuse "the pull request is not open"
+          [ "$(get .isDraft)" = false ] || refuse "the pull request is a draft"
+          [ "$(get .isCrossRepository)" = false ] || refuse "the pull request comes from a fork"
+          [ "$(get .baseRefName)" = "$BASE" ] || refuse "the pull request does not target $BASE"
+          [ "$(get .headRefOid)" = "$APPROVED_SHA" ] || refuse "the approval was for an older commit than the branch head"
+          [ "$(get .mergeable)" = MERGEABLE ] || refuse "mergeability is '$(get .mergeable)'"
+
+          # Reviews: decided from the reviews themselves. Without required-review branch rules (free private repos)
+          # GitHub leaves reviewDecision empty even after an approval, so it cannot be the gate.
+          # Each reviewer's latest opinionated review (APPROVED or CHANGES_REQUESTED) is what counts; comments don't
+          # change it, and a dismissed review has state DISMISSED and drops out.
+          [ "$(get .reviewDecision)" != CHANGES_REQUESTED ] || refuse "changes are requested"
+          latest=$(gh api --paginate --slurp "repos/$REPO/pulls/$PR/reviews" | jq -c '
+            [.[][] | select(.state == "APPROVED" or .state == "CHANGES_REQUESTED")]
+            | group_by(.user.login) | map(sort_by(.submitted_at) | last)')
+          blockers=$(jq -r '[.[] | select(.state == "CHANGES_REQUESTED") | .user.login] | join(", ")' <<<"$latest")
+          [ -z "$blockers" ] || refuse "changes requested by $blockers"
+          approved=$(jq --arg r "$REVIEWER" --arg sha "$APPROVED_SHA" \
+            '[.[] | select(.user.login == $r and .state == "APPROVED" and .commit_id == $sha)] | length' <<<"$latest")
+          [ "$approved" = 1 ] || refuse "$REVIEWER's latest review is not an approval of the head commit"
+
+          # Checks: every check run and status on the head commit has finished successfully (skipped/neutral allowed).
+          bad_checks=$(jq -r --arg self "$SELF_WORKFLOW" '
+            [.statusCheckRollup[]?
+              | select((.workflowName // "") != $self)
+              | {name: (.name // .context), result: (.conclusion // .state // .status // "")}
+              | select(.result | test("^(SUCCESS|SKIPPED|NEUTRAL)$") | not)
+              | "\(.name)=\(.result)"] | join(", ")' <<<"$info")
+          [ -z "$bad_checks" ] || refuse "checks not green: $bad_checks"
+
+          # Codex: the latest summary state from the real Codex bot must be clean for the head commit.
+          state=$(gh api --paginate --slurp "repos/$REPO/issues/$PR/comments" | jq -c --arg login "$CODEX_REST_LOGIN" '
+            [.[][] | select(.user.login == $login and .user.type == "Bot" and (.body | contains("codex-review-state:v1")))]
+            | sort_by(.updated_at) | last // empty
+            | .body | capture("codex-review-state:v1 (?<json>[{].*?[}]) -->").json | fromjson | .code_review')
+          [ -n "$state" ] || refuse "no Codex review state found"
+          [ "$(jq -r .commit_sha <<<"$state")" = "$APPROVED_SHA" ] || refuse "Codex has not reviewed the head commit"
+          [ "$(jq -r .status <<<"$state")" = completed ] || refuse "Codex review status is '$(jq -r .status <<<"$state")'"
+          [ "$(jq -r .has_unresolved_findings <<<"$state")" = false ] || refuse "Codex reports unresolved findings"
+          # Approve only after a clean round: Codex's latest round on the head commit found nothing at all.
+          [ "$(jq -r .has_any_findings <<<"$state")" = false ] || refuse "Codex's latest round on the head commit had findings; request a clean round"
+
+          # Threads: no current unresolved thread, except Codex's own (Codex reported none unresolved just above).
+          # Every page of threads (--paginate follows $endCursor), so a thread past the first 100 still counts.
+          open_threads=$(gh api graphql --paginate --slurp -F pr="$PR" -f owner="${REPO%/*}" -f name="${REPO#*/}" -f query='
+            query($owner:String!,$name:String!,$pr:Int!,$endCursor:String){repository(owner:$owner,name:$name){pullRequest(number:$pr){
+              reviewThreads(first:100,after:$endCursor){pageInfo{hasNextPage endCursor}
+                nodes{isResolved isOutdated comments(first:1){nodes{author{login __typename}}}}}}}}' \
+            | jq --arg codex "$CODEX_GRAPHQL_LOGIN" '[.[].data.repository.pullRequest.reviewThreads.nodes[]
+                | select(.isResolved | not) | select(.isOutdated | not)
+                | select((.comments.nodes[0].author.login == $codex and .comments.nodes[0].author.__typename == "Bot") | not)]
+                | length')
+          [ "$open_threads" = 0 ] || refuse "$open_threads unresolved review thread(s)"
+
+          gh pr merge "$PR" --repo "$REPO" --squash --delete-branch --match-head-commit "$APPROVED_SHA"
+          echo "Merged #$PR and deleted its branch."

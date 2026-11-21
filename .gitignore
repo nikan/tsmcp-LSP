@@ -137,3 +137,30 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# dev-standards (template/common/.gitignore)
+test-results/
+
+# scratch / temp (see handbook/07)
+.scratch/
+.worktrees/
+tmp/
+temp/
+*.tmp
+*.bak
+*.orig
+*.rej
+
+# editors & OS
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Claude Code personal settings
+.claude/settings.local.json
+
+# Local MCP client config (absolute local paths)
+.mcp.json

@@ -1,0 +1,30 @@
+# Git hooks, Node pack (installed by `npm install` via the "prepare" script).
+pre-commit:
+  piped: true # in order: format before lint
+  commands:
+    1-no-temp-files:
+      run: sh scripts/check-no-temp.sh
+    2-format:
+      glob: '*.{ts,vue,js,mjs,json,md,css,scss,yml,yaml}'
+      run: npx prettier --write {staged_files}
+      stage_fixed: true
+    3-lint:
+      glob: '*.{ts,vue,js,mjs}'
+      run: npx eslint --fix {staged_files}
+      stage_fixed: true
+    4-i18n:
+      glob: '**/locales/*.json'
+      run: sh scripts/dev i18n
+
+commit-msg:
+  commands:
+    conventional-commits:
+      run: sh scripts/check-commit-msg.sh {1}
+
+pre-push:
+  parallel: true
+  commands:
+    typecheck:
+      run: sh scripts/dev typecheck
+    test:
+      run: sh scripts/dev test
