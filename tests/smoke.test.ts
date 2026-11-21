@@ -4,9 +4,9 @@ import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const projectRoot = path.resolve(__dirname, '..');
-const fixtureRoot = path.resolve(__dirname, 'fixtures', 'sample-project');
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
+const projectRoot = path.resolve(currentDir, '..');
+const fixtureRoot = path.resolve(currentDir, 'fixtures', 'sample-project');
 
 let client: Client;
 let transport: StdioClientTransport;
@@ -44,8 +44,8 @@ describe('Smoke tests', () => {
     expect(parsed.definitions.length).toBeGreaterThanOrEqual(1);
 
     // At least one definition should point to utils.ts
-    const hasUtilsDef = parsed.definitions.some(
-      (def: { file_path: string }) => def.file_path.includes('utils.ts'),
+    const hasUtilsDef = parsed.definitions.some((def: { file_path: string }) =>
+      def.file_path.includes('utils.ts'),
     );
     expect(hasUtilsDef).toBe(true);
   }, 30000);
@@ -123,7 +123,10 @@ describe('Smoke tests', () => {
     expect(parsed.symbols).toBeDefined();
     expect(parsed.symbols.length).toBeGreaterThanOrEqual(1);
 
-    const greetSym = parsed.symbols.find((s: { name: string; file_path: string }) => s.name === 'greet' && s.file_path.includes('utils.ts'));
+    const greetSym = parsed.symbols.find(
+      (s: { name: string; file_path: string }) =>
+        s.name === 'greet' && s.file_path.includes('utils.ts'),
+    );
     expect(greetSym).toBeDefined();
     expect(greetSym.kind).toBe('function');
     expect(greetSym.line).toBeGreaterThanOrEqual(1);

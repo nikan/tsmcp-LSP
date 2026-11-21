@@ -53,12 +53,9 @@ export class LspClient {
   async start(): Promise<void> {
     if (this.initialized) return;
 
-    const __dirname = path.dirname(fileURLToPath(import.meta.url));
-    const packageRoot = path.resolve(__dirname, '..');
-    const serverBin = path.resolve(
-      packageRoot,
-      'node_modules/.bin/typescript-language-server',
-    );
+    const currentDir = path.dirname(fileURLToPath(import.meta.url));
+    const packageRoot = path.resolve(currentDir, '..');
+    const serverBin = path.resolve(packageRoot, 'node_modules/.bin/typescript-language-server');
 
     this.process = spawn(serverBin, ['--stdio'], {
       cwd: this.rootPath,
@@ -197,11 +194,7 @@ export class LspClient {
   /**
    * Get hover information.
    */
-  async hover(
-    uri: string,
-    line: number,
-    character: number,
-  ): Promise<Hover | null> {
+  async hover(uri: string, line: number, character: number): Promise<Hover | null> {
     this.ensureInitialized();
     const params: TextDocumentPositionParams = {
       textDocument: { uri },
@@ -213,9 +206,7 @@ export class LspClient {
   /**
    * Get document symbols.
    */
-  async documentSymbol(
-    uri: string,
-  ): Promise<SymbolInformation[] | DocumentSymbol[] | null> {
+  async documentSymbol(uri: string): Promise<SymbolInformation[] | DocumentSymbol[] | null> {
     this.ensureInitialized();
     const params: DocumentSymbolParams = {
       textDocument: { uri },
@@ -226,9 +217,7 @@ export class LspClient {
   /**
    * Search workspace symbols.
    */
-  async workspaceSymbol(
-    query: string,
-  ): Promise<SymbolInformation[] | WorkspaceSymbol[] | null> {
+  async workspaceSymbol(query: string): Promise<SymbolInformation[] | WorkspaceSymbol[] | null> {
     this.ensureInitialized();
     const params: WorkspaceSymbolParams = { query };
     return this.connection!.sendRequest(WorkspaceSymbolRequest.type, params);

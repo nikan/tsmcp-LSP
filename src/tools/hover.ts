@@ -22,8 +22,8 @@ export function registerHoverTool(
         content: z.string().optional().describe('Optional file content override'),
       },
     },
-    async ({ file_path, line, column, content }) => {
-      const filePath = path.resolve(file_path);
+    async ({ file_path: rawFilePath, line, column, content }) => {
+      const filePath = path.resolve(rawFilePath);
       const client = await workspaceManager.getClient(filePath);
       const uri = pathToUri(filePath);
       await documentManager.ensureOpen(uri, client.getConnection(), content);
@@ -71,9 +71,10 @@ function normalizeHoverResult(hover: Hover): HoverResult {
   return result;
 }
 
-function extractContents(
-  contents: MarkupContent | MarkedString | MarkedString[],
-): { contents: string; language?: string } {
+function extractContents(contents: MarkupContent | MarkedString | MarkedString[]): {
+  contents: string;
+  language?: string;
+} {
   // MarkupContent: { kind, value }
   if (typeof contents === 'object' && 'kind' in contents) {
     return { contents: (contents as MarkupContent).value };

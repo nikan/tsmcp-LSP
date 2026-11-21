@@ -6,8 +6,8 @@ import { DidOpenTextDocumentNotification } from 'vscode-languageserver-protocol'
 import { LspClient } from '../src/lsp-client.js';
 import { pathToUri, uriToPath } from '../src/utils.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const fixtureRoot = path.resolve(__dirname, 'fixtures/sample-project');
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
+const fixtureRoot = path.resolve(currentDir, 'fixtures/sample-project');
 
 describe('Definition resolution through imports', () => {
   let client: LspClient;

@@ -58,13 +58,10 @@ describe('fromLspPosition', () => {
   });
 });
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
 
 describe('getPreviewLine', () => {
-  const fixtureFile = path.resolve(
-    __dirname,
-    'fixtures/sample-project/src/utils.ts',
-  );
+  const fixtureFile = path.resolve(currentDir, 'fixtures/sample-project/src/utils.ts');
 
   it('reads a line from disk', () => {
     const line = getPreviewLine(fixtureFile, 1);

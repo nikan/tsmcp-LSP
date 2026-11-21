@@ -23,14 +23,14 @@ Agent <-> [stdio/MCP SDK] <-> MCP Server <-> LSP Client <-> [stdio] <-> typescri
 
 ## Tools
 
-| Tool | Description |
-|------|-------------|
-| `ts_definition` | Go to definition of a symbol |
-| `ts_references` | Find all references of a symbol |
-| `ts_hover` | Get type info and documentation |
-| `ts_symbols` | Search symbols (file or workspace scope) |
+| Tool                | Description                                                  |
+| ------------------- | ------------------------------------------------------------ |
+| `ts_definition`     | Go to definition of a symbol                                 |
+| `ts_references`     | Find all references of a symbol                              |
+| `ts_hover`          | Get type info and documentation                              |
+| `ts_symbols`        | Search symbols (file or workspace scope)                     |
 | `ts_implementation` | Find concrete implementations of interfaces/abstract classes |
-| `ts_call_hierarchy` | Find incoming callers or outgoing callees of a function |
+| `ts_call_hierarchy` | Find incoming callers or outgoing callees of a function      |
 
 All position-based tools accept **1-indexed** `line` and `column` parameters (matching what editors display). The server converts to 0-indexed internally for LSP.
 

@@ -1,0 +1,51 @@
+name: Release
+
+# Released projects (mcp-stdio, cli, library), Node pack — handbook/06, "Released projects".
+# A tag vX.Y.Z on main re-runs every check, verifies the version, checks what goes into the package and creates the
+# GitHub release. Not published to npm: users install from source (README), so there is no publish step.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write # GitHub release
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Tag is on main
+        run: |
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "$GITHUB_REF_NAME is not on main"; exit 1; }
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+
+      - name: Checks
+        run: sh scripts/dev ci
+
+      - name: Version matches the tag
+        run: |
+          version=$(node -p "require('./package.json').version")
+          [ "v$version" = "$GITHUB_REF_NAME" ] || { echo "package.json is $version but the tag is $GITHUB_REF_NAME"; exit 1; }
+
+      - name: Package contains no tests, fixtures or secrets
+        run: |
+          files=$(npm pack --dry-run --json --ignore-scripts | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s)[0].files.map(f=>f.path).join('\n')))")
+          echo "$files"
+          if echo "$files" | grep -qiE '(^|/)(__tests__|tests?|fixtures|coverage)/|\.test\.|\.spec\.|(^|/)\.env'; then
+            echo "The package would include test, fixture or env files: fix \"files\" in package.json"; exit 1
+          fi
+
+      - name: GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --generate-notes --verify-tag

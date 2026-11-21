@@ -83,9 +83,7 @@ export class WorkspaceManager {
     const pendingClients = Array.from(this.pending.values()).map((p) =>
       p.then((client) => client.shutdown()).catch(() => {}),
     );
-    const activeClients = Array.from(this.clients.values()).map((client) =>
-      client.shutdown(),
-    );
+    const activeClients = Array.from(this.clients.values()).map((client) => client.shutdown());
     await Promise.all([...activeClients, ...pendingClients]);
     this.clients.clear();
     this.pending.clear();
@@ -128,8 +126,12 @@ export class WorkspaceManager {
 
     const isSourceFile = (name: string): boolean => {
       if (name.endsWith('.d.ts')) return false;
-      return name.endsWith('.ts') || name.endsWith('.tsx')
-        || name.endsWith('.js') || name.endsWith('.jsx');
+      return (
+        name.endsWith('.ts') ||
+        name.endsWith('.tsx') ||
+        name.endsWith('.js') ||
+        name.endsWith('.jsx')
+      );
     };
 
     const walk = (dir: string): void => {

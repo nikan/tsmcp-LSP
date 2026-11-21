@@ -8,11 +8,11 @@ built-in LSP tool revealed correctness gaps and missing operations.
 
 ## Gap Summary
 
-| Area | Severity | Description |
-|------|----------|-------------|
-| ~~Go-to-definition resolves to import, not target~~ | ~~Critical~~ | ~~Fixed in PR #32~~ — `linkSupport: true` now enables proper definition resolution |
-| ~~Find-references misses files outside tsconfig scope~~ | ~~High~~ | ~~Fixed in PR #34~~ — `WorkspaceManager` now opens all workspace files via `didOpen` at startup |
-| Missing LSP operations | **Medium** | 4 operations supported by internal LSP are not exposed: `goToImplementation`, `prepareCallHierarchy`, `incomingCalls`, `outgoingCalls` |
+| Area                                                    | Severity     | Description                                                                                                                            |
+| ------------------------------------------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------- |
+| ~~Go-to-definition resolves to import, not target~~     | ~~Critical~~ | ~~Fixed in PR #32~~ — `linkSupport: true` now enables proper definition resolution                                                     |
+| ~~Find-references misses files outside tsconfig scope~~ | ~~High~~     | ~~Fixed in PR #34~~ — `WorkspaceManager` now opens all workspace files via `didOpen` at startup                                        |
+| Missing LSP operations                                  | **Medium**   | 4 operations supported by internal LSP are not exposed: `goToImplementation`, `prepareCallHierarchy`, `incomingCalls`, `outgoingCalls` |
 
 ---
 
@@ -55,12 +55,12 @@ and no regression on source-only references (5 new tests).
 
 The internal LSP supports 4 operations not exposed by tsmcp-lsp:
 
-| Operation | Description | LSP Method |
-|-----------|-------------|------------|
-| `goToImplementation` | Find implementations of an interface/abstract method | `textDocument/implementation` |
-| `prepareCallHierarchy` | Get the call hierarchy item at a position | `textDocument/prepareCallHierarchy` |
-| `incomingCalls` | Find all callers of a function | `callHierarchy/incomingCalls` |
-| `outgoingCalls` | Find all callees from a function | `callHierarchy/outgoingCalls` |
+| Operation              | Description                                          | LSP Method                          |
+| ---------------------- | ---------------------------------------------------- | ----------------------------------- |
+| `goToImplementation`   | Find implementations of an interface/abstract method | `textDocument/implementation`       |
+| `prepareCallHierarchy` | Get the call hierarchy item at a position            | `textDocument/prepareCallHierarchy` |
+| `incomingCalls`        | Find all callers of a function                       | `callHierarchy/incomingCalls`       |
+| `outgoingCalls`        | Find all callees from a function                     | `callHierarchy/outgoingCalls`       |
 
 ### Tasks
 
@@ -90,6 +90,7 @@ The internal LSP supports 4 operations not exposed by tsmcp-lsp:
 ## Success Criteria
 
 When complete, running the same 4-operation comparison test should produce:
+
 - ~~`ts_definition` resolves through imports to actual definitions (matching internal LSP)~~ — **done**
 - ~~`ts_references` finds references across source and test files (matching internal LSP)~~ — **done**
 - `ts_hover` continues to match (already at parity)

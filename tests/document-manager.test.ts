@@ -5,11 +5,8 @@ import { DocumentManager } from '../src/document-manager.js';
 import { pathToUri } from '../src/utils.js';
 import type { ProtocolConnection } from 'vscode-languageserver-protocol/node.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const fixtureRoot = path.resolve(
-  __dirname,
-  'fixtures/sample-project',
-);
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
+const fixtureRoot = path.resolve(currentDir, 'fixtures/sample-project');
 const utilsPath = path.join(fixtureRoot, 'src/utils.ts');
 const utilsUri = pathToUri(utilsPath);
 

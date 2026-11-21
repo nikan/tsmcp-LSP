@@ -26,11 +26,7 @@ export class DocumentManager implements DocumentContentProvider {
    * If not yet open, reads from disk (or uses provided content) and sends didOpen.
    * If already open and content differs, sends didChange.
    */
-  async ensureOpen(
-    uri: string,
-    connection: ProtocolConnection,
-    content?: string,
-  ): Promise<void> {
+  async ensureOpen(uri: string, connection: ProtocolConnection, content?: string): Promise<void> {
     const existing = this.documents.get(uri);
 
     // If the connection changed (e.g. LSP server restarted), the new server
