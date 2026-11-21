@@ -31,7 +31,7 @@ jobs:
 
       - name: Package contains no tests, fixtures or secrets
         run: |
-          files=$(npm pack --dry-run --json | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s)[0].files.map(f=>f.path).join('\n')))")
+          files=$(npm pack --dry-run --json --ignore-scripts | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s)[0].files.map(f=>f.path).join('\n')))")
           echo "$files"
           if echo "$files" | grep -qiE '(^|/)(__tests__|tests?|fixtures|coverage)/|\.test\.|\.spec\.|(^|/)\.env'; then
             echo "The package would include test, fixture or env files: fix \"files\" in package.json"; exit 1
