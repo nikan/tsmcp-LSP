@@ -19,17 +19,26 @@ export function registerReferencesTool(
         line: z.number().describe('Line number (1-indexed)'),
         column: z.number().describe('Column number (1-indexed)'),
         content: z.string().optional().describe('Optional file content override'),
-        include_declaration: z.boolean().optional().describe('Include the declaration in results (default: true)'),
+        include_declaration: z
+          .boolean()
+          .optional()
+          .describe('Include the declaration in results (default: true)'),
       },
     },
-    async ({ file_path, line, column, content, include_declaration }) => {
-      const filePath = path.resolve(file_path);
+    async ({
+      file_path: rawFilePath,
+      line,
+      column,
+      content,
+      include_declaration: includeDeclaration,
+    }) => {
+      const filePath = path.resolve(rawFilePath);
       const client = await workspaceManager.getClient(filePath);
       const uri = pathToUri(filePath);
       await documentManager.ensureOpen(uri, client.getConnection(), content);
 
       const lspPos = toLspPosition(line, column);
-      const includeDecl = include_declaration !== undefined ? include_declaration : true;
+      const includeDecl = includeDeclaration !== undefined ? includeDeclaration : true;
       const result = await client.references(uri, lspPos.line, lspPos.character, includeDecl);
 
       const references = (result ?? []).map((loc) => {

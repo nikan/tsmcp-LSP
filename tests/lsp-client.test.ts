@@ -1,18 +1,13 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import {
-  DidOpenTextDocumentNotification,
-} from 'vscode-languageserver-protocol';
+import { DidOpenTextDocumentNotification } from 'vscode-languageserver-protocol';
 import { LspClient } from '../src/lsp-client.js';
 import { pathToUri } from '../src/utils.js';
 import { readFileSync } from 'node:fs';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const fixtureRoot = path.resolve(
-  __dirname,
-  'fixtures/sample-project',
-);
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
+const fixtureRoot = path.resolve(currentDir, 'fixtures/sample-project');
 
 describe('LspClient', () => {
   let client: LspClient;

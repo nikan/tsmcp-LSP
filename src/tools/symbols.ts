@@ -102,11 +102,13 @@ export function registerSymbolsTool(
         scope: z
           .enum(['file', 'workspace'])
           .optional()
-          .describe('Search scope: "file" for document symbols, "workspace" for workspace-wide (default: "workspace")'),
+          .describe(
+            'Search scope: "file" for document symbols, "workspace" for workspace-wide (default: "workspace")',
+          ),
       },
     },
-    async ({ query, file_path, scope }) => {
-      const filePath = path.resolve(file_path);
+    async ({ query, file_path: rawFilePath, scope }) => {
+      const filePath = path.resolve(rawFilePath);
       const client = await workspaceManager.getClient(filePath);
       const uri = pathToUri(filePath);
       const effectiveScope = scope ?? 'workspace';
@@ -152,7 +154,9 @@ export function registerSymbolsTool(
             if ('range' in loc) {
               // SymbolInformation location: { uri, range }
               symFilePath = uriToPath(loc.uri);
-              const range = (loc as { uri: string; range: { start: { line: number; character: number } } }).range;
+              const range = (
+                loc as { uri: string; range: { start: { line: number; character: number } } }
+              ).range;
               const pos = fromLspPosition(range.start);
               line = pos.line;
               column = pos.column;

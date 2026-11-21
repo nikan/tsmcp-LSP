@@ -6,8 +6,8 @@ import { WorkspaceManager } from '../src/workspace-manager.js';
 import { DocumentManager } from '../src/document-manager.js';
 import { pathToUri, uriToPath } from '../src/utils.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const fixtureRoot = path.resolve(__dirname, 'fixtures/sample-project');
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
+const fixtureRoot = path.resolve(currentDir, 'fixtures/sample-project');
 
 describe('Cross-scope references (src + tests)', () => {
   let manager: WorkspaceManager;

@@ -1,7 +1,12 @@
 import path from 'node:path';
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import type { CallHierarchyItem, CallHierarchyIncomingCall, CallHierarchyOutgoingCall, Range } from 'vscode-languageserver-protocol';
+import type {
+  CallHierarchyItem,
+  CallHierarchyIncomingCall,
+  CallHierarchyOutgoingCall,
+  Range,
+} from 'vscode-languageserver-protocol';
 import type { WorkspaceManager } from '../workspace-manager.js';
 import type { DocumentManager } from '../document-manager.js';
 import { pathToUri, uriToPath, toLspPosition, fromLspPosition, getPreviewLine } from '../utils.js';
@@ -28,12 +33,14 @@ export function registerCallHierarchyTool(
         file_path: z.string().describe('Absolute path to the file'),
         line: z.number().describe('Line number (1-indexed)'),
         column: z.number().describe('Column number (1-indexed)'),
-        direction: z.enum(['incoming', 'outgoing']).describe('Direction: "incoming" finds callers, "outgoing" finds callees'),
+        direction: z
+          .enum(['incoming', 'outgoing'])
+          .describe('Direction: "incoming" finds callers, "outgoing" finds callees'),
         content: z.string().optional().describe('Optional file content override'),
       },
     },
-    async ({ file_path, line, column, direction, content }) => {
-      const filePath = path.resolve(file_path);
+    async ({ file_path: rawFilePath, line, column, direction, content }) => {
+      const filePath = path.resolve(rawFilePath);
       const client = await workspaceManager.getClient(filePath);
       const uri = pathToUri(filePath);
       await documentManager.ensureOpen(uri, client.getConnection(), content);
@@ -66,7 +73,10 @@ export function registerCallHierarchyTool(
   );
 }
 
-function rangeToCallSites(ranges: Range[], filePath: string): Array<{ file_path: string; line: number; column: number }> {
+function rangeToCallSites(
+  ranges: Range[],
+  filePath: string,
+): Array<{ file_path: string; line: number; column: number }> {
   return ranges.map((r) => {
     const pos = fromLspPosition(r.start);
     return { file_path: filePath, line: pos.line, column: pos.column };

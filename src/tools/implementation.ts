@@ -14,7 +14,8 @@ export function registerImplementationTool(
   server.registerTool(
     'ts_implementation',
     {
-      description: 'Find concrete implementations of a TypeScript/JavaScript interface or abstract class',
+      description:
+        'Find concrete implementations of a TypeScript/JavaScript interface or abstract class',
       inputSchema: {
         file_path: z.string().describe('Absolute path to the file'),
         line: z.number().describe('Line number (1-indexed)'),
@@ -22,8 +23,8 @@ export function registerImplementationTool(
         content: z.string().optional().describe('Optional file content override'),
       },
     },
-    async ({ file_path, line, column, content }) => {
-      const filePath = path.resolve(file_path);
+    async ({ file_path: rawFilePath, line, column, content }) => {
+      const filePath = path.resolve(rawFilePath);
       const client = await workspaceManager.getClient(filePath);
       const uri = pathToUri(filePath);
       await documentManager.ensureOpen(uri, client.getConnection(), content);

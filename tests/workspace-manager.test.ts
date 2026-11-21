@@ -3,11 +3,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { WorkspaceManager } from '../src/workspace-manager.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const fixtureRoot = path.resolve(
-  __dirname,
-  'fixtures/sample-project',
-);
+const currentDir = path.dirname(fileURLToPath(import.meta.url));
+const fixtureRoot = path.resolve(currentDir, 'fixtures/sample-project');
 
 describe('WorkspaceManager', () => {
   let manager: WorkspaceManager;
@@ -21,17 +18,13 @@ describe('WorkspaceManager', () => {
   describe('findRoot', () => {
     it('finds root with tsconfig.json', () => {
       manager = new WorkspaceManager();
-      const root = manager.findRoot(
-        path.join(fixtureRoot, 'src/index.ts'),
-      );
+      const root = manager.findRoot(path.join(fixtureRoot, 'src/index.ts'));
       expect(root).toBe(fixtureRoot);
     });
 
     it('finds root from nested directory', () => {
       manager = new WorkspaceManager();
-      const root = manager.findRoot(
-        path.join(fixtureRoot, 'src/utils.ts'),
-      );
+      const root = manager.findRoot(path.join(fixtureRoot, 'src/utils.ts'));
       expect(root).toBe(fixtureRoot);
     });
 
@@ -45,9 +38,7 @@ describe('WorkspaceManager', () => {
   describe('getClient', () => {
     it('creates a client for a file in the fixture', async () => {
       manager = new WorkspaceManager();
-      const client = await manager.getClient(
-        path.join(fixtureRoot, 'src/index.ts'),
-      );
+      const client = await manager.getClient(path.join(fixtureRoot, 'src/index.ts'));
       expect(client).toBeDefined();
       expect(client.isInitialized).toBe(true);
       expect(manager.clientCount).toBe(1);
@@ -55,12 +46,8 @@ describe('WorkspaceManager', () => {
 
     it('reuses the same client for files in the same root', async () => {
       manager = new WorkspaceManager();
-      const client1 = await manager.getClient(
-        path.join(fixtureRoot, 'src/index.ts'),
-      );
-      const client2 = await manager.getClient(
-        path.join(fixtureRoot, 'src/utils.ts'),
-      );
+      const client1 = await manager.getClient(path.join(fixtureRoot, 'src/index.ts'));
+      const client2 = await manager.getClient(path.join(fixtureRoot, 'src/utils.ts'));
       expect(client1).toBe(client2);
       expect(manager.clientCount).toBe(1);
     }, 15000);
