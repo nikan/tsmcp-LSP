@@ -5,6 +5,7 @@
 An MCP server that exposes TypeScript semantic analysis (go-to-definition, find-references, hover, symbol search) as tools for AI agents like Claude Code and Mistral Vibe.
 
 **Key decisions:**
+
 - **Language:** TypeScript (single Node.js runtime, aligns with target ecosystem)
 - **MCP layer:** `@modelcontextprotocol/sdk` (no hand-rolled JSON-RPC)
 - **LSP client:** `vscode-languageserver-protocol` + `vscode-jsonrpc` for typed LSP messages and JSON-RPC transport over a manually spawned child process. **Not** `vscode-languageclient`, which depends on VS Code extension APIs unusable in a standalone Node process.
@@ -54,6 +55,7 @@ All position-based tools accept **1-indexed** `line` and `column` (matching what
 Find where a symbol is defined.
 
 **Input:**
+
 ```json
 {
   "file_path": "/project/src/index.ts",
@@ -62,12 +64,14 @@ Find where a symbol is defined.
   "content": "optional — current buffer content for unsaved files"
 }
 ```
+
 - `file_path` (required): Absolute path to the file
 - `line` (required): 1-indexed line number
 - `column` (required): 1-indexed column number
 - `content` (optional): Current file content for unsaved buffers. **MVP limitation:** only the queried file's unsaved state is synced; cross-file unsaved edits are not reflected.
 
 **Output:**
+
 ```json
 {
   "definitions": [
@@ -86,9 +90,11 @@ Find where a symbol is defined.
 Find all references to a symbol.
 
 **Input:** Same as `ts_definition`, plus:
+
 - `include_declaration` (optional, default `true`): Include the declaration site
 
 **Output:**
+
 ```json
 {
   "references": [
@@ -109,6 +115,7 @@ Get type information and documentation for a symbol.
 **Input:** Same as `ts_definition`.
 
 **Output:**
+
 ```json
 {
   "hover": {
@@ -127,17 +134,20 @@ Get type information and documentation for a symbol.
 Search for symbols in a file or workspace.
 
 **Input:**
+
 ```json
 {
   "query": "greet",
   "file_path": "/project/src/utils.ts"
 }
 ```
+
 - `query` (required): Symbol name or prefix to search for
 - `file_path` (required): Absolute path to a file. For **document symbols**, returns symbols defined in this file. For **workspace symbols**, this file determines which workspace root to search (via the workspace manager's root discovery). The search covers the entire workspace, not just this file.
 - `scope` (optional, default `"workspace"`): `"file"` for document symbols only, `"workspace"` for workspace-wide search
 
 **Output:**
+
 ```json
 {
   "symbols": [
@@ -170,6 +180,7 @@ Agent ↔ [stdio/MCP SDK] ↔ MCP Server ↔ LSP Client ↔ [stdio] ↔ typescri
 Spawns `typescript-language-server --stdio` as a child process. Uses `vscode-jsonrpc` (`createMessageConnection` over `StreamMessageReader`/`StreamMessageWriter`) for JSON-RPC transport — this handles message framing (Content-Length headers), request/response ID matching, and notification dispatch. Uses `vscode-languageserver-protocol` for typed LSP request/response definitions (e.g., `DefinitionRequest`, `HoverRequest`).
 
 **What it does:**
+
 - Spawns the child process via `child_process.spawn()`
 - Creates a `MessageConnection` from the process's stdin/stdout
 - Sends `initialize` with the workspace `rootUri` and client capabilities
@@ -183,6 +194,7 @@ Spawns `typescript-language-server --stdio` as a child process. Uses `vscode-jso
 Manages the mapping from file paths to workspace roots and lazily creates one LSP client instance per root.
 
 **Workspace root discovery (MVP):**
+
 1. Given a `file_path`, walk up the directory tree looking for `tsconfig.json` or `jsconfig.json` (first match wins)
 2. The directory containing the nearest config file is the workspace root
 3. If neither found, fall back to the directory of the file itself
@@ -190,6 +202,7 @@ Manages the mapping from file paths to workspace roots and lazily creates one LS
 **MVP scope limitation:** This handles standard single-`tsconfig.json` projects and `jsconfig.json`-based JS projects. It does **not** handle solution-style `tsconfig.json` (with `references`), custom config names (e.g., `tsconfig.build.json`), or monorepo setups with multiple overlapping configs. These are deferred — the nearest-ancestor heuristic is correct for the vast majority of single-project agent workflows.
 
 **Instance lifecycle:**
+
 - First tool call for a workspace root → spawn a new `typescript-language-server`, initialize with that `rootUri`
 - Subsequent calls for the same root → reuse the existing instance
 - On MCP server shutdown → shut down all LSP instances
@@ -225,14 +238,17 @@ State machine: `CLOSED → didOpen → OPEN → didChange → DIRTY → didClose
 ## MVP Scope
 
 ### Milestone 1: Core Navigation
+
 - `ts_definition` → LSP `textDocument/definition`
 - `ts_references` → LSP `textDocument/references`
 - `ts_hover` → LSP `textDocument/hover`
 
 ### Milestone 2: Symbol Search
+
 - `ts_symbols` → LSP `workspace/symbol` + `textDocument/documentSymbol`
 
 ### Deferred (future milestones)
+
 - `ts_rename` — complex workspace edits
 - `ts_diagnostics` — requires notification streaming
 - Call hierarchy, implementations, code actions
@@ -264,10 +280,13 @@ State machine: `CLOSED → didOpen → OPEN → didChange → DIRTY → didClose
 ## Testing Strategy
 
 ### Smoke Test (run from day 1)
+
 Start the MCP server, send initialize → tools/list → ts_definition on a fixture file → verify response contains correct file path and line → shutdown. This single test catches: missing tsserver, framing bugs, protocol errors, path conversion issues.
 
 ### Tool Tests
+
 Each tool tested against the `tests/fixtures/sample-project/` — a small TS project with known definitions, references, and types. Tests verify:
+
 - Correct results for known symbols
 - 1-indexed ↔ 0-indexed conversion
 - Source preview content
@@ -276,6 +295,7 @@ Each tool tested against the `tests/fixtures/sample-project/` — a small TS pro
 - File-not-found error handling
 
 ### Edge Cases
+
 - Unicode content in files
 - Multi-file projects with imports
 - Symbols with multiple definitions (overloads)
@@ -289,28 +309,28 @@ Each tool tested against the `tests/fixtures/sample-project/` — a small TS pro
 
 ## Open Questions — Resolved
 
-| Question | Decision |
-|----------|----------|
-| Request cancellation? | Not needed for MVP — LSP requests are fast for single files |
-| Max message size? | Trust OS pipe buffers. Revisit if large-codebase testing reveals issues |
-| Message compression? | No — LSP doesn't support it, stdio doesn't benefit |
-| Server topology? | One LSP instance per workspace root, lazily spawned. Root = nearest `tsconfig.json` ancestor. |
-| Multi-file unsaved buffers? | MVP supports single-file `content` only. Multi-file sync deferred. |
+| Question                                     | Decision                                                                                                               |
+| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Request cancellation?                        | Not needed for MVP — LSP requests are fast for single files                                                            |
+| Max message size?                            | Trust OS pipe buffers. Revisit if large-codebase testing reveals issues                                                |
+| Message compression?                         | No — LSP doesn't support it, stdio doesn't benefit                                                                     |
+| Server topology?                             | One LSP instance per workspace root, lazily spawned. Root = nearest `tsconfig.json` ancestor.                          |
+| Multi-file unsaved buffers?                  | MVP supports single-file `content` only. Multi-file sync deferred.                                                     |
 | `vscode-languageclient` vs protocol/jsonrpc? | Use `vscode-languageserver-protocol` + `vscode-jsonrpc` only. `vscode-languageclient` requires VS Code extension host. |
 
 ---
 
 ## Timeline Estimate
 
-| Phase | Duration | Deliverables |
-|-------|----------|-------------|
-| Setup + LSP client | 1 day | Project scaffolding, LSP client with `vscode-languageserver-protocol` |
-| Core tools | 1-2 days | `ts_definition`, `ts_references`, `ts_hover` with tests |
-| MCP server integration | 1 day | MCP SDK setup, tool registration, smoke test passing |
-| Polish + docs | 0.5 day | Error handling, README, config examples |
-| **Milestone 1 Total** | **3-5 days** | **Core navigation MVP** |
-| Symbol search | 1 day | `ts_symbols` tool |
-| **Milestone 2 Total** | **1 day** | **Symbol search extension** |
+| Phase                  | Duration     | Deliverables                                                          |
+| ---------------------- | ------------ | --------------------------------------------------------------------- |
+| Setup + LSP client     | 1 day        | Project scaffolding, LSP client with `vscode-languageserver-protocol` |
+| Core tools             | 1-2 days     | `ts_definition`, `ts_references`, `ts_hover` with tests               |
+| MCP server integration | 1 day        | MCP SDK setup, tool registration, smoke test passing                  |
+| Polish + docs          | 0.5 day      | Error handling, README, config examples                               |
+| **Milestone 1 Total**  | **3-5 days** | **Core navigation MVP**                                               |
+| Symbol search          | 1 day        | `ts_symbols` tool                                                     |
+| **Milestone 2 Total**  | **1 day**    | **Symbol search extension**                                           |
 
 ---
 
